@@ -1,0 +1,134 @@
+<html>
+<script type="text/javascript" src="custom-audio-node-audio-param.js"></script>
+<script type="text/javascript" src="custom-audio-node.js"></script>
+<script type="text/javascript" src="soundbank-pitch-shift.js"></script>
+<body>
+<div id="foo" style="font-size:80px;text-align:center;border:10px;">Press q to start</div>
+
+</body>
+<script>
+
+var context;
+var sound;
+var pitchShift;
+var semitones = 0;
+
+var key_semitones_map = {
+'c-1':-12, 'c-1#':-11, 'd-1':-10, 'd-1#':-9, 'e-1':-8, 'f-1':-7, 'f-1#':-6, 'g-1':-5, 'g-1#':-4, 'a-1':-3,'a-1#':-2, 'b-1':-1,
+'c0':0, 'c0#':1, 'd0':2, 'd0#':3, 'e0':4, 'f0':5, 'f0#':6, 'g0':7, 'g0#':8, 'a0':9,'a0#':10, 'b0':11,
+'c1':12, 'c1#':13, 'd1':14, 'd1#':15, 'e1':16, 'f1':17, 'f1#':18, 'g1':19, 'g1#':20, 'a1':21,'a1#':22, 'b1':23
+};
+
+//var tune = ['e0', 'e0', 'b0','b0', 'a0', 'g0','f0#','e0',         'd0','e0','f0','g0','a0','b0'];
+//var tune = ['e-1', 'e-1', 'b-1','b-1', 'a-1', 'g-1','f-1#','e-1',    'd-1','e-1','f-1','g-1','a-1','b-1'];
+
+var tune = ['c-1','e-1','g-1','c0','e0','g0','c1','e1','g1'];
+
+//var note_lengths = [300, 300, 300, 300, 300, 300, 300, 300,     300, 300, 300, 300, 300, 300];
+
+var note_lengths = ['2000','2000','2000','2000','2000','2000','2000','2000','4000'];
+
+function go(){
+     context = new AudioContext();
+
+     var getSound = new XMLHttpRequest();
+     getSound.open("GET", "/1_libby.wav", true);
+     getSound.responseType = "arraybuffer";
+     getSound.onload = function() {
+       context.decodeAudioData(getSound.response, function(buffer){
+          sound = buffer;
+       });
+     }
+     getSound.send();
+
+
+}
+
+
+function play_array(arr){
+
+        console.log("arr");
+        console.log(arr);
+
+        var count = 0;
+        var len = note_lengths[0];
+
+        console.log(arr[count]);
+        var note = key_semitones_map[arr[count]]
+        console.log(note);
+
+        pitchShift.transpose = note;
+
+        var timeout = setTimeout(function changePitch(){
+
+          count = count+1;
+          len = note_lengths[count]; 
+          console.log("count "+arr[count]+" "+note_lengths[count]);
+          var note = key_semitones_map[arr[count]]
+          console.log("note "+note);
+          pitchShift.transpose = note;
+
+          //repeat
+          if(arr[count+1]){
+            console.log("ok");
+            setTimeout(changePitch, len);
+          }else{
+            console.log("done");
+          }
+          
+        },len);
+
+ }
+
+
+function start(){
+
+     var source = context.createBufferSource(); // creates a sound source
+     source.buffer = sound;                    // tell the source which sound to play
+     pitchShift = new PitchShift(context);
+     pitchShift.connect(context.destination);
+     pitchShift.transpose = semitones;
+     pitchShift.wet.value = 1;
+//if dry is 1 you get the original included too
+     pitchShift.dry.value = 0;
+     source.connect(pitchShift);
+     source.start();
+
+
+     play_array(tune);
+
+//     source.stop(context.currentTime + 0.6);
+
+}
+
+function foo(st){
+  console.log("foo "+st);
+  pitchShift.transpose = st;
+}
+
+	
+function onKeyDown(e){
+  console.log(e.keyCode);
+  document.getElementById("foo").innerHTML = e.key;
+  switch (e.keyCode) {
+  // Q and along the top
+  case 81:
+    start();
+    break;
+  case 87:
+    semitones = semitones + 1;
+    foo(semitones);
+    break;
+  case 69:
+    semitones = semitones - 1;
+    foo(semitones);
+    break;
+  }
+}
+
+window.addEventListener("load", go());
+
+window.addEventListener("keydown",onKeyDown);
+
+</script>
+</html>
